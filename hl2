@@ -188,8 +188,14 @@ def translate_stream(
 
     font_path = download_remote_fonts(lang_out.lower())
     noto_name = NOTO_NAME
-    noto = Font(noto_name, font_path)
-    font_list.append((noto_name, font_path))
+    
+    # Only add font if the file actually exists
+    if font_path and Path(font_path).exists():
+        noto = Font(noto_name, font_path)
+        font_list.append((noto_name, font_path))
+    else:
+        logger.warning(f"Font file not found at {font_path}, skipping font addition")
+        noto = None
 
     doc_en = Document(stream=stream)
     stream = io.BytesIO()
@@ -425,6 +431,11 @@ def download_remote_fonts(lang: str):
             # Fallback to default font if download fails
             logger.warning(f"Failed to download font {font_name}, using default")
             font_path = ConfigManager.get("NOTO_FONT_PATH", "GoNotoKurrent-Regular.ttf")
+            
+    # Final check - if still no valid font, return None
+    if not font_path or not Path(font_path).exists():
+        logger.warning(f"No valid font found for {lang}, translation will use default fonts")
+        return None
 
     logger.info(f"use font: {font_path}")
 
